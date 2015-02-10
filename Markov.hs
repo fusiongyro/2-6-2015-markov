@@ -112,4 +112,3 @@ main = do
       states = scanl eight empty (replicate 10 append)
 
   mapM_ (putStrLn . showMarkovState) states
-  
