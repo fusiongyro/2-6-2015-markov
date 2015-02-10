@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.State
 import qualified Data.Map as Map
 
+
 type MarkovMap = Map.Map String [String]
 type MarkovState = ([String], StdGen)
 type MarkovSt = State MarkovState String
@@ -93,14 +94,24 @@ initMarkovState = do
   return ([], g)
 
 
--- Converts the state of a Markov chain to a readable sentence
-showMarkovState :: MarkovState -> String
-showMarkovState = toSentence . fst
-    where toSentence ls = foldl join' "" (reverse ls)
-              where join' [] [] = ""
-                    join' [] (s:ss) = toUpper s : ss
-                    join' a b = a ++ " " ++ b
+-- Sets a markov chain to the initial empty state
+reInitChain :: MarkovSt
+reInitChain = do
+  (_,g) <- get
+  put ([], snd (next g))
+  return ""
 
+
+-- Sets the markov chain to contain only the first word of the current chain
+resetChain :: MarkovSt
+resetChain = do
+  (ws,g) <- get
+  if not $ null ws
+  then let w = last ws
+           ng = snd $ next g
+       in put ([w],ng) >> return w
+  else reInitChain
+         
 
 -- Sets the markov chain to only contain the last word of the current chain
 passChain :: MarkovSt
@@ -108,14 +119,14 @@ passChain = do
   (ws,g) <- get
   if not $ null ws
   then let w = head ws
-       in put ([w],g) >> return w
-  else return ""
+           ng = snd $ next g
+       in put ([w],ng) >> return w
+  else reInitChain
 
 
 -- Resets the markov chain and repeats a state manipulation `num` times
 repeatMarkovSt :: Int -> MarkovSt -> MarkovSt
 repeatMarkovSt num st = do
-    passChain
     ls <- replicateM num st
     return $ head ls
 
@@ -123,6 +134,15 @@ repeatMarkovSt num st = do
 -- Like runState but only returns the state, not the result
 runMarkovSt :: MarkovSt -> MarkovState -> MarkovState
 runMarkovSt st start = snd $ runState st start
+
+
+-- Converts the state of a Markov chain to a readable sentence
+showMarkovState :: MarkovState -> String
+showMarkovState = toSentence . fst
+    where toSentence ls = foldl join' "" (reverse ls)
+              where join' [] [] = ""
+                    join' [] (s:ss) = toUpper s : ss
+                    join' a b = a ++ " " ++ b
 
 
 main :: IO ()
@@ -133,7 +153,7 @@ main = do
 
   let bigmap = foldl (Map.unionWith (++)) Map.empty maps
       append = addToChainSt bigmap
-      eight start st = runMarkovSt (repeatMarkovSt 8 st) start
-      states = scanl eight empty (repeat append)
+      seven start st = runMarkovSt (passChain >> repeatMarkovSt 7 st) start
+      states = scanl seven empty (repeat append)
 
-  mapM_ (putStrLn . showMarkovState) states
+  mapM_ (putStrLn . showMarkovState) $ take 100 states
