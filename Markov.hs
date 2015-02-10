@@ -18,18 +18,25 @@ toChain line = filter (not . null) $ map clean (words line)
   where clean = ((map toLower) . (filter isAlpha))
 
 
+-- Adds a new word to the chain mapped to by the given key
+markovMapInsert :: MarkovMap -> String -> String -> MarkovMap
+markovMapInsert mp _ [] = mp
+markovMapInsert mp k v = if k == v || k `elem` (words v) then mp
+                         else Map.insertWith (++) k [v] mp
+
+
 -- Maps every word in a chain to a list of words that have followed it
 insertChain :: [String] -> MarkovMap -> MarkovMap 
 insertChain [] mp = mp
 insertChain [_] mp = mp
-insertChain [k,v] mp = Map.insertWith (++) k [v] mp
-insertChain (a:as) mp = -- insertChain as $ Map.insertWith (++) a [head as] mp
+insertChain [k,v] mp = markovMapInsert mp k v
+insertChain (a:as) mp = -- insertChain as $ markovMapInsert mp a (head as)
     let b = head as
         c = head . tail $ as
         val = if (length b + length c) < 8
-              then [b ++ " " ++ c]
-              else [b]
-    in insertChain as $ Map.insertWith (++) a val mp
+              then b ++ " " ++ c
+              else b
+    in insertChain as $ markovMapInsert mp a val
 
 
 -- Converts a line of text to a chain moves the words into a map
