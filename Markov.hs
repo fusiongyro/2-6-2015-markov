@@ -21,7 +21,7 @@ toChain line = filter (not . null) $ map clean (words line)
 -- Adds a new word to the chain mapped to by the given key
 markovMapInsert :: MarkovMap -> String -> String -> MarkovMap
 markovMapInsert mp _ [] = mp
-markovMapInsert mp k v = if k == v || k `elem` (words v) then mp
+markovMapInsert mp k v = if k `elem` (words v) then mp
                          else Map.insertWith (++) k [v] mp
 
 
