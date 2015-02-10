@@ -100,10 +100,6 @@ runMarkovSt :: MarkovSt -> MarkovState -> MarkovState
 runMarkovSt st start = snd $ runState st start
 
 
--- passState :: Int -> MarkovState -> MarkovSt -> MarkovState
--- passState len start st = runMarkovSt (repeatMarkovSt len st) start
-                                    
-
 main :: IO ()
 main = do
   args <- getArgs
