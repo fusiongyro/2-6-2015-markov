@@ -19,8 +19,15 @@ toChain line = filter (not . null) $ map clean (words line)
 -- Maps every word in a chain to a list of words that have followed it
 insertChain :: [String] -> MarkovMap -> MarkovMap 
 insertChain [] mp = mp
-insertChain [x] mp = mp
-insertChain (x:xs) mp = insertChain xs $ Map.insertWith (++) x [head xs] mp
+insertChain [_] mp = mp
+insertChain [k,v] mp = Map.insertWith (++) k [v] mp
+insertChain (a:as) mp = -- insertChain as $ Map.insertWith (++) a [head as] mp
+    let b = head as
+        c = head . tail $ as
+        val = if (length b + length c) < 8
+              then [b ++ " " ++ c]
+              else [b]
+    in insertChain as $ Map.insertWith (++) a val mp
 
 
 -- Converts a line of text to a chain moves the words into a map
@@ -46,13 +53,19 @@ parseFile fname = openFile fname ReadMode >>= markovMapFile Map.empty
 -- Takes a Markov chain, randomly chooses a word which might follow the current
 -- word, and returns that word coupled with the new state of the markov chain
 addToChain :: MarkovMap -> MarkovState -> (String, MarkovState)
-addToChain mp ([], g) = let (idx, ng) = randomR (0, Map.size mp - 1) g
-                            start = fst $ Map.elemAt idx mp
-                        in (start, ([start], ng))
-addToChain mp (ls, g) = let choices = ((Map.!) mp (head ls))
-                            (idx, ng) = randomR (0, length choices - 1) g
-                            word = choices !! idx
-                        in (word, (word:ls, ng))
+addToChain mp ([], g) =
+    let (idx, ng) = randomR (0, Map.size mp - 1) g
+        key = fst $ Map.elemAt idx mp
+    in (key, ([key], ng))
+addToChain mp (ls, g) =
+    let choices = (Map.!) mp (head ls)
+        (idx, ng) = randomR (0, length choices - 1) g
+        val = choices !! idx
+    -- in (val, (val:ls, ng))
+    in if ' ' `elem` val
+       then let l = foldl (flip (:)) ls (words val)
+            in (head l, (l, ng))
+       else (val, (val:ls, ng))
 
 
 -- Wraps the addToChain function in a Stateful Computation, so you can do
