@@ -82,7 +82,7 @@ addToChain mp (ls, g) =
 
 
 -- Wraps the addToChain function in a Stateful Computation, so you can do
--- Monadic things with it!
+-- Monad things with it!
 addToChainSt :: MarkovMap -> MarkovSt
 addToChainSt = state . addToChain
 
@@ -126,14 +126,19 @@ passChain = do
 
 -- Resets the markov chain and repeats a state manipulation `num` times
 repeatMarkovSt :: Int -> MarkovSt -> MarkovSt
-repeatMarkovSt num st = do
-    ls <- replicateM num st
+repeatMarkovSt num action = do
+    ls <- replicateM num action
     return $ head ls
 
 
+-- Adds a given number of words from a map to a markov chain
+addWordsToChain :: MarkovMap -> Int -> MarkovSt
+addWordsToChain mp n = repeatMarkovSt n (addToChainSt mp)
+
+
 -- Like runState but only returns the state, not the result
-runMarkovSt :: MarkovSt -> MarkovState -> MarkovState
-runMarkovSt st start = snd $ runState st start
+runMarkovSt :: MarkovState -> MarkovSt -> MarkovState
+runMarkovSt start action = snd $ runState action start
 
 
 -- Converts the state of a Markov chain to a readable sentence
@@ -151,9 +156,15 @@ main = do
   maps <- mapM parseFile args
   empty <- initMarkovState
 
-  let bigmap = foldl (Map.unionWith (++)) Map.empty maps
-      append = addToChainSt bigmap
-      seven start st = runMarkovSt (passChain >> repeatMarkovSt 7 st) start
-      states = scanl seven empty (repeat append)
+  let mrkvMap = foldl (Map.unionWith (++)) Map.empty maps
+      -- I can create an infinite list of stateful computations to shape the
+      -- output of the program to my liking. For example, this writes short
+      -- "poetic" four-line stanzas, such that the last word of each line is the
+      -- first word of the next line!
+      machine = zipWith (>>) (cycle $ reInitChain : (replicate 3 passChain)) $
+                repeat (addWordsToChain mrkvMap 6)
+      -- When I scan over that list computations I can create an infinite list
+      -- of snapshots of the state of the markov chain... INFINITE BAD POETRY!
+      states = tail $ scanl runMarkovSt empty machine
 
-  mapM_ (putStrLn . showMarkovState) $ take 100 states
+  mapM_ (putStrLn . showMarkovState) $ take 24 states
