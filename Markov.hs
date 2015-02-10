@@ -1,7 +1,9 @@
 import Data.Char
+import Data.Maybe
 import System.IO
-import System.Environment
 import System.Random
+import System.Environment
+import Control.Monad
 import Control.Monad.State
 import qualified Data.Map as Map
 
@@ -58,14 +60,17 @@ addToChain mp ([], g) =
         key = fst $ Map.elemAt idx mp
     in (key, ([key], ng))
 addToChain mp (ls, g) =
-    let choices = (Map.!) mp (head ls)
-        (idx, ng) = randomR (0, length choices - 1) g
-        val = choices !! idx
-    -- in (val, (val:ls, ng))
-    in if ' ' `elem` val
-       then let l = foldl (flip (:)) ls (words val)
-            in (head l, (l, ng))
-       else (val, (val:ls, ng))
+    let mbChoices = Map.lookup (head ls) mp 
+    in if isJust mbChoices
+       then let Just choices = mbChoices
+                (idx,ng) = randomR (0, length choices - 1) g
+                val =  choices !! idx
+            -- in (val, (val:ls, ng))
+            in if ' ' `elem` val
+               then let l = foldl (flip (:)) ls (words val)
+                    in (head l, (l, ng))
+               else (val, (val:ls, ng))
+       else addToChain mp ([], g)
 
 
 -- Wraps the addToChain function in a Stateful Computation, so you can do
@@ -122,6 +127,6 @@ main = do
   let bigmap = foldl (Map.unionWith (++)) Map.empty maps
       append = addToChainSt bigmap
       eight start st = runMarkovSt (repeatMarkovSt 8 st) start
-      states = scanl eight empty (replicate 10 append)
+      states = scanl eight empty (repeat append)
 
   mapM_ (putStrLn . showMarkovState) states
