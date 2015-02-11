@@ -31,13 +31,10 @@ insertChain :: [String] -> MarkovMap -> MarkovMap
 insertChain [] mp = mp
 insertChain [_] mp = mp
 insertChain [k,v] mp = markovMapInsert mp k v
-insertChain (a:as) mp = -- insertChain as $ markovMapInsert mp a (head as)
-    let b = head as
-        c = head . tail $ as
-        val = if (length b + length c) < 8
-              then b ++ " " ++ c
-              else b
-    in insertChain as $ markovMapInsert mp a val
+insertChain (a:as) mp = let shorts = takeWhile ((< 4) . length) as
+                            val = if null shorts then head as
+                                  else tail $ concatMap (' ' :) shorts
+                        in insertChain as $ markovMapInsert mp a val
 
 
 -- Converts a line of text to a chain moves the words into a map
@@ -63,22 +60,20 @@ parseFile fname = openFile fname ReadMode >>= markovMapFile Map.empty
 -- Takes a Markov chain, randomly chooses a word which might follow the current
 -- word, and returns that word coupled with the new state of the markov chain
 addToChain :: MarkovMap -> MarkovState -> (String, MarkovState)
-addToChain mp ([], g) =
-    let (idx, ng) = randomR (0, Map.size mp - 1) g
-        key = fst $ Map.elemAt idx mp
-    in (key, ([key], ng))
-addToChain mp (ls, g) =
-    let mbChoices = Map.lookup (head ls) mp 
-    in if isJust mbChoices
-       then let Just choices = mbChoices
-                (idx,ng) = randomR (0, length choices - 1) g
-                val =  choices !! idx
-            -- in (val, (val:ls, ng))
-            in if ' ' `elem` val
-               then let l = foldl (flip (:)) ls (words val)
-                    in (head l, (l, ng))
-               else (val, (val:ls, ng))
-       else addToChain mp ([], g)
+addToChain mp ([], g) = (val, ([val], ng))
+    where (idx, ng) = randomR (0, Map.size mp - 1) g
+          val = fst $ Map.elemAt idx mp
+addToChain mp (ws, g) =
+    case Map.lookup (head ws) mp of
+      Nothing -> addToChain mp ([], g)
+      Just steps -> if ' ' `elem` val
+                    -- then let chain = (reverse $ words val) ++ ws
+                    then let chain = foldl (flip (:)) ws $ words val
+                             ch = head chain
+                         in (ch, (chain, ng))
+                    else (val, (val:ws, ng))
+          where (idx, ng) = randomR (0, length steps - 1) g
+                val = steps !! idx
 
 
 -- Wraps the addToChain function in a Stateful Computation, so you can do
@@ -162,7 +157,7 @@ main = do
       -- "poetic" four-line stanzas, such that the last word of each line is the
       -- first word of the next line!
       machine = zipWith (>>) (cycle $ reInitChain : (replicate 3 passChain)) $
-                repeat (addWordsToChain mrkvMap 6)
+                repeat (addWordsToChain mrkvMap 7)
       -- When I scan over that list computations I can create an infinite list
       -- of snapshots of the state of the markov chain... INFINITE BAD POETRY!
       states = tail $ scanl runMarkovSt empty machine
