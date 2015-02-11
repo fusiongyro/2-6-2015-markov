@@ -111,7 +111,6 @@ For my last trick, I wrote this totally simple function:
 ```
 runMarkovSt :: MarkovState -> MarkovSt -> MarkovState
 runMarkovSt start action = snd $ runState action start
-
 ```
 
 It takes the current state of a Markov Chain, and a neatly wrapped up stateful
