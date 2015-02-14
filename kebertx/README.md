@@ -111,7 +111,6 @@ For my last trick, I wrote this totally simple function:
 ```
 runMarkovSt :: MarkovState -> MarkovSt -> MarkovState
 runMarkovSt start action = snd $ runState action start
-
 ```
 
 It takes the current state of a Markov Chain, and a neatly wrapped up stateful
@@ -137,10 +136,17 @@ And that's about all. The main function of the program currently generates
 "poetry" - so here's a bad poem about this README!
 
 > *By the resulting state sequence*
-> > *Call this text the nth state of the*
+
+> &nbsp;&nbsp;&nbsp;&nbsp; *Call this text the nth state of the*
+
 > *The chain itself needs to be selected to add words*
-> > *Words that note if a list of words*
+
+> &nbsp;&nbsp;&nbsp;&nbsp; *Words that note if a list of words*
+
 > *Together a day and the wonderful wizard of oz*
-> > *Apply them all to an initial state s let a little*
+
+> &nbsp;&nbsp;&nbsp;&nbsp; *Apply them all to an initial state s let a little*
+
 > *Shades of text as the same*
-> > *Alarmingly stateful computations*
+
+> &nbsp;&nbsp;&nbsp;&nbsp; *Alarmingly stateful computations*
