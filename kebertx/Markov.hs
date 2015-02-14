@@ -1,5 +1,4 @@
 import Data.Char
-import Data.Maybe
 import System.IO
 import System.Random
 import System.Environment
@@ -12,6 +11,14 @@ type MarkovMap = Map.Map String [String]
 type MarkovState = ([String], StdGen)
 type MarkovSt = State MarkovState String
 
+
+-- \_ >>> :t (>>=)
+-- (>>=) :: Monad m => m a -> (a -> m b) -> m b
+-- \_ >>> :t (>>= (const mst))
+-- (>>= (const mst)) :: (MarkovState -> a) -> MarkovState -> (String, MarkovState)
+-- \_ >>> :t (mst >>=)
+-- (mst >>=) :: ((String, MarkovState) -> MarkovState -> b) -> MarkovState -> b
+                            
 
 -- Turns a line of text into a list of strings containing only lowercase letters
 toChain :: String -> [String]
@@ -162,4 +169,4 @@ main = do
       -- of snapshots of the state of the markov chain... INFINITE BAD POETRY!
       states = tail $ scanl runMarkovSt empty machine
 
-  mapM_ (putStrLn . showMarkovState) $ take 24 states
+  mapM_ (putStrLn . showMarkovState) states
