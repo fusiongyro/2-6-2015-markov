@@ -30,7 +30,7 @@ toChain line = filter (not . null) $ map clean (words line)
 markovMapInsert :: MarkovMap -> String -> String -> MarkovMap
 markovMapInsert mp _ [] = mp
 markovMapInsert mp k v = if k == (head $ words v) then mp
-                         else Map.insertWith (++) k [v] mp
+                         else Map.insertWith' (++) k [v] mp
 
 
 -- Maps every word in a chain to a list of words that have followed it
@@ -158,7 +158,7 @@ main = do
   maps <- mapM parseFile args
   empty <- initMarkovState
 
-  let mrkvMap = foldl (Map.unionWith (++)) Map.empty maps
+  let mrkvMap = Map.unionsWith (++) maps
       -- I can create an infinite list of stateful computations to shape the
       -- output of the program to my liking. For example, this writes short
       -- "poetic" four-line stanzas, such that the last word of each line is the
@@ -167,6 +167,6 @@ main = do
                 repeat (addWordsToChain mrkvMap 7)
       -- When I scan over that list computations I can create an infinite list
       -- of snapshots of the state of the markov chain... INFINITE BAD POETRY!
-      states = tail $ scanl runMarkovSt empty machine
+      states = tail $ scanl runMarkovSt empty $ take 24 machine
 
   mapM_ (putStrLn . showMarkovState) states
